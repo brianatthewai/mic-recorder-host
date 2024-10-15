@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mic Recorder</title>
+  <script src="https://cdn.jsdelivr.net/npm/mic-recorder-to-mp3@2.2.0/dist/mic-recorder-to-mp3.min.js"></script>
+</head>
+<body>
+  <h1>Record Your Audio</h1>
+  <button id="start-btn">Start Recording</button>
+  <button id="stop-btn" disabled>Stop Recording</button>
+  <audio id="player" controls></audio>
+
+  <script>
+    const recorder = new MicRecorder({
+      bitRate: 128,
+      encoder: 'mp3',
+      sampleRate: 44100,
+    });
+
+    document.getElementById('start-btn').addEventListener('click', () => {
+      recorder.start().then(() => {
+        document.getElementById('start-btn').disabled = true;
+        document.getElementById('stop-btn').disabled = false;
+      }).catch(e => console.error(e));
+    });
+
+    document.getElementById('stop-btn').addEventListener('click', () => {
+      recorder.stop().getAudio().then(([buffer, blob]) => {
+        const file = new File(buffer, 'recording.mp3', { type: blob.type, lastModified: Date.now() });
+        const player = document.getElementById('player');
+        player.src = URL.createObjectURL(file);
+        player.play();
+
+        document.getElementById('start-btn').disabled = false;
+        document.getElementById('stop-btn').disabled = true;
+      }).catch(e => {
+        alert('Failed to stop recording');
+        console.log(e);
+      });
+    });
+  </script>
+</body>
+</html>
