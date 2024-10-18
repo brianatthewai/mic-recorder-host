@@ -1,45 +1,53 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mic Recorder</title>
-  <script src="https://cdn.jsdelivr.net/npm/mic-recorder-to-mp3@2.2.0/dist/mic-recorder-to-mp3.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Capture Widget</title>
 </head>
 <body>
-  <h1>Record Your Audio</h1>
-  <button id="start-btn">Start Recording</button>
-  <button id="stop-btn" disabled>Stop Recording</button>
-  <audio id="player" controls></audio>
+    <h1>Audio Capture Widget</h1>
+    <button id="recordButton">Record</button>
+    <button id="stopButton" disabled>Stop</button>
+    <audio id="audioPlayback" controls></audio>
 
-  <script>
-    const recorder = new MicRecorder({
-      bitRate: 128,
-      encoder: 'mp3',
-      sampleRate: 44100,
-    });
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        const recordButton = document.getElementById('recordButton');
+        const stopButton = document.getElementById('stopButton');
+        const audioPlayback = document.getElementById('audioPlayback');
 
-    document.getElementById('start-btn').addEventListener('click', () => {
-      recorder.start().then(() => {
-        document.getElementById('start-btn').disabled = true;
-        document.getElementById('stop-btn').disabled = false;
-      }).catch(e => console.error(e));
-    });
+        recordButton.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                mediaRecorder = new MediaRecorder(stream);
 
-    document.getElementById('stop-btn').addEventListener('click', () => {
-      recorder.stop().getAudio().then(([buffer, blob]) => {
-        const file = new File(buffer, 'recording.mp3', { type: blob.type, lastModified: Date.now() });
-        const player = document.getElementById('player');
-        player.src = URL.createObjectURL(file);
-        player.play();
+                mediaRecorder.ondataavailable = (event) => {
+                    audioChunks.push(event.data);
+                };
 
-        document.getElementById('start-btn').disabled = false;
-        document.getElementById('stop-btn').disabled = true;
-      }).catch(e => {
-        alert('Failed to stop recording');
-        console.log(e);
-      });
-    });
-  </script>
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const audioUrl = URL.createObjectURL(audioBlob);
+                    audioPlayback.src = audioUrl;
+                    audioChunks = [];
+                };
+
+                mediaRecorder.start();
+                recordButton.disabled = true;
+                stopButton.disabled = false;
+            } catch (err) {
+                console.error('Error accessing microphone:', err);
+                alert('Microphone access is required to record audio.');
+            }
+        });
+
+        stopButton.addEventListener('click', () => {
+            mediaRecorder.stop();
+            recordButton.disabled = false;
+            stopButton.disabled = true;
+        });
+    </script>
 </body>
 </html>
